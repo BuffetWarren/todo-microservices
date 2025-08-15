@@ -21,7 +21,7 @@ export class SearchQueryDto {
 
     @IsOptional()
     @IsString()
-    @IsIn(['name', 'email', 'createdAt', 'updatedAt']) // Champs autorisés
+    @IsIn(['id','name', 'email', 'createdAt', 'updatedAt']) // Champs autorisés
     sortBy?: string = 'createdAt';
 
     @IsOptional()

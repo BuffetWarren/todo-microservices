@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Delete, Get, HttpCode, HttpStatus, InternalServerErrorException, NotFoundException, Param, ParseIntPipe, ParseUUIDPipe, Post, Put } from "@nestjs/common";
 import { PersonService } from "./persons.service";
 import { CreatePersonDto } from "./dto";
 import { SearchQueryDto } from "./dto/search-query.dto";
@@ -8,28 +8,26 @@ export class PersonsController {
     constructor(private personService: PersonService) { }
 
     @Post('create')
+    @HttpCode(HttpStatus.CREATED)
     createPerson(@Body() createPersonDto: CreatePersonDto) {
-        createPersonDto.name = createPersonDto.name.trim();
-        createPersonDto.email = createPersonDto.email.trim();
         return this.personService.createPerson(createPersonDto);
     }
 
     @Put(':id')
-    updatePerson(@Param('id') id: number, @Body() updatePersonDto: CreatePersonDto) {
-        updatePersonDto.name = updatePersonDto.name.trim();
-        updatePersonDto.email = updatePersonDto.email.trim();
-        return this.personService.updatePerson(id, updatePersonDto);
+    async updatePerson(@Param('id', ParseIntPipe) id: number, @Body() updatePersonDto: CreatePersonDto) {
+        return await this.personService.updatePerson(id, updatePersonDto);
     }
 
-    @Post('delete/:id')
-    deletePerson(@Param('id') id: number) {
-        return this.personService.deletePerson(id);
+    @Delete('delete/:id')
+    @HttpCode(HttpStatus.NO_CONTENT)
+    async deletePerson(@Param('id', ParseIntPipe) id: number) {
+        const person = await this.personService.getPerson(id);
     }
 
-    // @Post(':id')
-    // getPerson(@Param('id') id: number) {
-    //     return this.personService.getPerson(id);
-    // }
+    @Get(':id')
+    async getPerson(@Param('id', ParseIntPipe) id: number) {
+        return await this.personService.getPerson(id);
+    }
 
     @Post('search-all')
     fetchAll(@Body() query: SearchQueryDto) {

@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
 import { PrismaClient } from "@prisma/client";
 import { PrismaService } from "src/prisma/prisma.service";
 import { CreatePersonDto } from "./dto";
@@ -12,29 +12,65 @@ export class PersonService {
     }
 
     async createPerson(data: CreatePersonDto) {
-        return await this.person.create({ data });
+        const cleanData = {
+            name: data.name?.trim(),
+            email: data.email?.trim()
+        };
+        try {
+            return await this.person.create({ data: cleanData });
+        } catch (error) {
+
+            if (error.code === 'P2002') {
+                throw new BadRequestException('Email already exists');
+            }
+            throw new InternalServerErrorException('Failed to create person');
+        }
     }
 
 
     async updatePerson(id: number, data: CreatePersonDto) {
-        return await this.person.update({
-            where: { id },
-            data,
-        });
+
+        await this.getPerson(id);
+
+        const cleanData = {
+            name: data.name?.trim(),
+            email: data.email?.trim()
+        };
+
+        try {
+            return await this.person.update({
+                where: { id },
+                data: cleanData
+            });
+        } catch (error) {
+            if (error.code === 'P2002') {
+                throw new BadRequestException('Email already exists');
+            }
+            throw new InternalServerErrorException('Failed to update person');
+        }
     }
 
     async deletePerson(id: number) {
-        return await this.person.delete({
-            where: { id },
-        });
+        await this.getPerson(id);
+
+        try {
+            return await this.person.delete({ where: { id } });
+        } catch (error) {
+            if (error.code === 'P2003') {
+                throw new BadRequestException('Cannot delete: referenced by other records');
+            }
+            throw new InternalServerErrorException('Failed to delete person');
+        }
     }
 
 
-    // async getPerson(id: number) {
-    //     return await this.person.findUnique({
-    //         where: { id },
-    //     });
-    // }
+    async getPerson(id: number) {
+        const person = await this.person.findUnique({ where: { id } });
+        if (!person) {
+            throw new NotFoundException(`Person with ID ${id} not found`);
+        }
+        return person;
+    }
 
     async fetchAll(query: SearchQueryDto) {
         const { search, limit = 10, sortBy = 'createdAt', orderBy = 'desc' } = query;
@@ -61,14 +97,21 @@ export class PersonService {
         return data;
     }
 
-    
-     async searchPaginated(query: SearchQueryDto): Promise<PaginatedResponse<any>> {
-        const { search, page = 1, limit = 10, sortBy = 'createdAt', orderBy = 'desc' } = query;
-        
+
+    async searchPaginated(query: SearchQueryDto): Promise<PaginatedResponse<any>> {
+        const {
+            search,
+            page = 1,
+            limit = 10,
+            sortBy = 'createdAt',
+            orderBy = 'desc'
+        } = query;
+
         // Validation supplémentaire côté service
         const validatedLimit = Math.min(Math.max(limit, 1), 100);
         const validatedPage = Math.max(page, 1);
         const skip = (validatedPage - 1) * validatedLimit;
+
 
         // Construction de la condition de recherche
         const searchCondition = search ? {
@@ -80,9 +123,11 @@ export class PersonService {
 
         // Construction de l'ordre de tri
         const orderCondition = {
-            [sortBy]: orderBy
+            [orderBy]: orderBy
         };
 
+        try {
+            
         const [data, total] = await Promise.all([
             this.person.findMany({
                 where: searchCondition,
@@ -96,7 +141,7 @@ export class PersonService {
         ]);
 
         const totalPages = Math.ceil(total / validatedLimit);
-        
+
         return {
             data,
             pagination: {
@@ -106,6 +151,9 @@ export class PersonService {
                 totalPages
             },
         };
+    } catch (error) {
+            throw new InternalServerErrorException('Failed to search persons');
+        
+        }
     }
-
 }
