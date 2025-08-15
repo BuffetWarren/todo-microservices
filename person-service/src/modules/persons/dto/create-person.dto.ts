@@ -1,9 +1,11 @@
-import { IsEmail, IsNotEmpty, IsString, Min } from "class-validator";
+import { Transform } from "class-transformer";
+import { IsEmail, IsNotEmpty, IsString, MinLength } from "class-validator";
 
 export class CreatePersonDto {
     @IsNotEmpty()
     @IsString()
-    @Min(3)
+    @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
+    @MinLength(3, { message: 'La recherche doit contenir au moins 3 caractères' })
     @IsString()
     name: string;
     

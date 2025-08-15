@@ -9,11 +9,15 @@ export class PersonsController {
 
     @Post('create')
     createPerson(@Body() createPersonDto: CreatePersonDto) {
+        createPersonDto.name = createPersonDto.name.trim();
+        createPersonDto.email = createPersonDto.email.trim();
         return this.personService.createPerson(createPersonDto);
     }
 
     @Put(':id')
     updatePerson(@Param('id') id: number, @Body() updatePersonDto: CreatePersonDto) {
+        updatePersonDto.name = updatePersonDto.name.trim();
+        updatePersonDto.email = updatePersonDto.email.trim();
         return this.personService.updatePerson(id, updatePersonDto);
     }
 

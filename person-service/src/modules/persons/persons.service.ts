@@ -51,7 +51,6 @@ export class PersonService {
 
         const validatedLimit = Math.min(Math.max(limit, 1), 100);
 
-        // Exécution parallèle des requêtes
         const [data] = await Promise.all([
             this.person.findMany({
                 where: searchCondition,
@@ -84,7 +83,6 @@ export class PersonService {
             [sortBy]: orderBy
         };
 
-        // Exécution parallèle des requêtes
         const [data, total] = await Promise.all([
             this.person.findMany({
                 where: searchCondition,
